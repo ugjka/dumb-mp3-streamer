@@ -14,3 +14,4 @@ Options:
 ```
 
 Limitations: Currently there's no way to kill slow clients so you may run out ram if some clients can't catch up
+Six clients max till everything bottlenecks
