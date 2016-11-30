@@ -1,10 +1,8 @@
 package main
 
 import (
-	"bytes"
 	"flag"
 	"fmt"
-	"io"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -105,15 +103,14 @@ func stream(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Server", "dumb-mp3-livestreamer")
 	//Send MP3 stream header
 	b := []byte{0x49, 0x44, 0x33, 0x03, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}
-	io.Copy(w, bytes.NewReader(b))
+	w.Write(b)
 	//Listen for new frames and send them
 	for {
 		buf := <-d.clients[id]
 		if buf == nil {
 			break
 		}
-		_, err := io.Copy(w, bytes.NewReader(buf))
-		if err != nil {
+		if _, err := w.Write(buf); err != nil {
 			break
 		}
 	}
