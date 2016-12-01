@@ -16,3 +16,5 @@ Options:
 ```
 
 Limitations: Currently there's no way to kill slow clients. Assumes perfect network conditions
+
+Beware: doing something like `cat *.mp3 | dumb-mp3-streamer` can produce frankenstein streams.
