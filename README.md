@@ -15,4 +15,4 @@ Options:
 
 ```
 
-Limitations: Currently there's no way to kill slow clients.
+Limitations: Currently there's no way to kill slow clients. Assumes perfect network conditions
