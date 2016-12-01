@@ -148,6 +148,7 @@ func stream(w http.ResponseWriter, r *http.Request) {
 	}
 	// Send initial buffer
 	d.Lock()
+	// copy the buffer to reduce the lock time
 	buf := d.buffer
 	d.Unlock()
 	for _, k := range buf {
@@ -155,6 +156,8 @@ func stream(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
+	// Release the copied buffer
+	buf = nil
 	//Listen for new frames and send them
 	for {
 		buf := <-d.clients[id]
