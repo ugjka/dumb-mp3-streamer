@@ -94,7 +94,7 @@ func stream(w http.ResponseWriter, r *http.Request) {
 	d.Lock()
 	d.id++
 	id := d.id
-	d.clients[id] = make(chan []byte)
+	d.clients[id] = make(chan []byte, 1024)
 	d.Unlock()
 	// Set some headers
 	w.Header().Set("Content-Type", "audio/mpeg")
