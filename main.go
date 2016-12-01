@@ -97,6 +97,7 @@ func read() {
 		d.buffer[i] = buf
 	}
 	d.Unlock()
+	log.Println("Buffer created!")
 	// Loop for sending individual mp3 frames
 	for {
 		start := time.Now()
