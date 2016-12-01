@@ -1,4 +1,4 @@
-# dumb-mp3-livestreamer
+# dumb-mp3-streamer
 WIP, experimenting with go's net/http
 
 Reads mp3 data from Stdin, and serves them over http (livestream)
