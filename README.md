@@ -4,7 +4,7 @@ WIP, experimenting with go's net/http
 Reads mp3 data from Stdin, and serves them over http (livestream)
 
 ```
-Usage: cat *.mp3 | dumb-mp3-streamer [options...]
+Usage: cat *.wav | lame - - | dumb-mp3-streamer [options...]
 
 Access stream from http://localhost:8080
 

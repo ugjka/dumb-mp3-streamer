@@ -14,7 +14,7 @@ import (
 	"github.com/tcolgate/mp3"
 )
 
-var usage = `Usage: cat *.mp3 | dumb-mp3-streamer [options...]
+var usage = `Usage: cat *.wav | lame - - | dumb-mp3-streamer [options...]
 
 Access stream from http://localhost:8080
 
