@@ -76,6 +76,8 @@ func read() {
 			k <- nil
 		}
 		d.Unlock()
+		time.Sleep(time.Second * 10)
+		os.Exit(0)
 	}
 	defer finish()
 
