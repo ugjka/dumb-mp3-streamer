@@ -1,5 +1,4 @@
 # dumb-mp3-streamer
-WIP, experimenting with go's net/http
 
 Reads mp3 data from Stdin, and serves them over http (livestream)
 
@@ -13,8 +12,6 @@ Options:
 	-buffer Number of mp3 frames to buffer at start. Default: 500
 
 ```
-
-Limitations: Currently there's no way to kill slow clients. Assumes perfect network conditions
 
 Beware: doing something like `cat *.mp3 | dumb-mp3-streamer` can produce frankenstein streams.
 Use [mp3cat](https://tomclegg.ca/mp3cat) instead!
