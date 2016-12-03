@@ -14,14 +14,15 @@ import (
 	"github.com/tcolgate/mp3"
 )
 
-var usage = `Usage: cat *.wav | lame - - | dumb-mp3-streamer [options...]
+var usage = `
+Usage: cat *.wav | lame - - | dumb-mp3-streamer [options...]
 
 Access stream from http://localhost:8080
 
 Options:
 	-port 	Portnumber for server (max 65535). Default: 8080
 	-buffer Number of mp3 frames to buffer at start. Default: 500
-	-chanbuf Buffer length for go channels (To avoid lockup). Default: 1024
+	
 `
 
 type data struct {
@@ -32,12 +33,11 @@ type data struct {
 }
 
 var d data
-var chanbuf *uint
+var buffer *uint
 
 func main() {
 	port := flag.Uint("port", 8080, "Server Port")
-	buffer := flag.Uint("buffer", 500, "Initial buffer")
-	chanbuf = flag.Uint("chanbuf", 1024, "Lenght of buffered channels")
+	buffer = flag.Uint("buffer", 500, "Initial buffer")
 	flag.Usage = func() {
 		fmt.Fprint(os.Stderr, fmt.Sprintf(usage))
 	}
@@ -50,11 +50,6 @@ func main() {
 		fmt.Fprint(os.Stderr, "ERROR: Buffer cannot be 0\n")
 		return
 	}
-	if *chanbuf == 0 {
-		fmt.Fprint(os.Stderr, "ERROR: Chanbuf cannot be 0\n")
-		return
-	}
-
 	d.clients = make(map[uint64]chan []byte)
 	d.buffer = make([][]byte, *buffer)
 
@@ -113,8 +108,11 @@ func read() {
 			return
 		}
 		d.Lock()
+		//Do not send data when channel is full
 		for _, k := range d.clients {
-			k <- buf
+			if len(k) < int(*buffer) {
+				k <- buf
+			}
 		}
 		// Update the buffer
 		d.buffer = d.buffer[1:]
@@ -130,7 +128,7 @@ func stream(w http.ResponseWriter, r *http.Request) {
 	d.Lock()
 	d.id++
 	id := d.id
-	d.clients[id] = make(chan []byte, *chanbuf)
+	d.clients[id] = make(chan []byte, *buffer)
 	d.Unlock()
 	// Remove client
 	finish := func() {
@@ -164,6 +162,7 @@ func stream(w http.ResponseWriter, r *http.Request) {
 	//Listen for new frames and send them
 	for {
 		buf := <-d.clients[id]
+		//End if data is nil
 		if buf == nil {
 			return
 		}
