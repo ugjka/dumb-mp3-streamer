@@ -22,7 +22,7 @@ Access stream from http://localhost:8080
 Options:
 	-port 	Portnumber for server (max 65535). Default: 8080
 	-buffer Number of mp3 frames to buffer at start. Default: 500
-	
+
 `
 
 type data struct {
@@ -141,7 +141,7 @@ func stream(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "audio/mpeg")
 	w.Header().Set("Cache-Control", "no-cache")
 	w.Header().Set("Pragma", "no-cache")
-	w.Header().Set("Server", "dumb-mp3-livestreamer")
+	w.Header().Set("Server", "dumb-mp3-streamer")
 	//Send MP3 stream header
 	b := []byte{0x49, 0x44, 0x33, 0x03, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}
 	if _, err := w.Write(b); err != nil {
