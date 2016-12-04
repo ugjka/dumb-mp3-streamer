@@ -10,7 +10,6 @@ Access stream from http://localhost:8080
 Options:
 	-port 	Portnumber for server (max 65535). Default: 8080
 	-buffer Number of mp3 frames to buffer at start. Default: 500
-	-live   Set true if input is live, to prevent overruns
 
 ```
 

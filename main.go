@@ -22,7 +22,6 @@ Access stream from http://localhost:8080
 Options:
 	-port 	Portnumber for server (max 65535). Default: 8080
 	-buffer Number of mp3 frames to buffer at start. Default: 500
-	-live   Set true if input is live, to prevent overruns
 
 `
 
@@ -40,7 +39,6 @@ var live *bool
 func main() {
 	port := flag.Uint("port", 8080, "Server Port")
 	buffer = flag.Uint("buffer", 500, "Initial buffer")
-	live = flag.Bool("live", false, "Live mode")
 	flag.Usage = func() {
 		fmt.Fprint(os.Stderr, fmt.Sprintf(usage))
 	}
@@ -98,8 +96,10 @@ func read() {
 	}
 	d.Unlock()
 	log.Println("Buffer created!")
-	// Loop for sending individual mp3 frames
+	// Timings
 	var wait time.Duration
+	var delta time.Duration
+	// Loop for sending individual mp3 frames
 	for {
 		start := time.Now()
 		if err := in.Decode(&f); err != nil {
@@ -122,14 +122,15 @@ func read() {
 		d.buffer = d.buffer[1:]
 		d.buffer = append(d.buffer, buf)
 		d.Unlock()
-		if !*live {
-			delta := f.Duration() - time.Now().Sub(start)
-			wait += delta
-			if wait > time.Second {
-				time.Sleep(wait)
-				wait = 0
-			}
+
+		//Frame Delayer
+		wait += delta
+		delta = f.Duration() - time.Now().Sub(start)
+		if wait > time.Second {
+			time.Sleep(wait)
+			wait = 0
 		}
+
 	}
 }
 
