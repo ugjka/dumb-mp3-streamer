@@ -34,7 +34,6 @@ type data struct {
 
 var d data
 var buffer *uint
-var live *bool
 
 func main() {
 	port := flag.Uint("port", 8080, "Server Port")
