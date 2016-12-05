@@ -16,3 +16,5 @@ Options:
 
 Beware: doing something like `cat *.mp3 | dumb-mp3-streamer` can produce frankenstein streams.
 Use [mp3cat](https://tomclegg.ca/mp3cat) instead!
+
+Check Wiki for examples: https://github.com/ugjka/dumb-mp3-streamer/wiki
