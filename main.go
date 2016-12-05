@@ -5,12 +5,16 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
+	"net"
 	"net/http"
 	"os"
+	"os/signal"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 
+	goupnp "github.com/NebulousLabs/go-upnp"
 	"github.com/tcolgate/mp3"
 )
 
@@ -22,6 +26,7 @@ Access stream from http://localhost:8080
 Options:
 	-port 	Portnumber for server (max 65535). Default: 8080
 	-buffer Number of mp3 frames to buffer at start. Default: 500
+	-upnp		Use to forward the port on the router
 
 `
 
@@ -34,10 +39,14 @@ type data struct {
 
 var d data
 var buffer *uint
+var port *uint
+var upnp *bool
+var c = make(chan os.Signal, 2)
 
 func main() {
-	port := flag.Uint("port", 8080, "Server Port")
-	buffer = flag.Uint("buffer", 500, "Initial buffer")
+	port = flag.Uint("port", 8080, "Server Port")
+	buffer = flag.Uint("buffer", 500, "Number of frames to buffer")
+	upnp = flag.Bool("upnp", false, "Enable upnp port forwarding")
 	flag.Usage = func() {
 		fmt.Fprint(os.Stderr, fmt.Sprintf(usage))
 	}
@@ -50,16 +59,29 @@ func main() {
 		fmt.Fprint(os.Stderr, "ERROR: Buffer cannot be 0\n")
 		return
 	}
+	//Catch Ctrl+C and Kill
+	signal.Notify(c, os.Interrupt)
+	signal.Notify(c, os.Kill)
+	go func() {
+		<-c
+		log.Println("Shutting Down!")
+		if *upnp {
+			_ = clearUpnp()
+		}
+		os.Exit(0)
+	}()
+
 	d.clients = make(map[uint64]chan []byte)
 	d.buffer = make([][]byte, *buffer)
-
+	//Print all possible access points
+	printIP()
+	//Main Reader
 	go read()
 
 	srv := &http.Server{
 		Addr: ":" + strconv.Itoa(int(*port)),
 	}
 	http.HandleFunc("/", stream)
-	log.Println("Starting Streaming on http://localhost:" + strconv.Itoa(int(*port)) + "/")
 	log.Fatal(srv.ListenAndServe())
 }
 
@@ -72,7 +94,7 @@ func read() {
 		}
 		d.Unlock()
 		time.Sleep(time.Second * 10)
-		os.Exit(0)
+		c <- os.Kill
 	}
 	defer finish()
 
@@ -181,4 +203,65 @@ func stream(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
+}
+
+func printIP() {
+	if *upnp {
+		ip, err := forward()
+		if err != nil {
+			log.Println("Upnp forwarding failed!")
+		} else {
+			log.Println("Starting Streaming on http://" + ip + ":" + strconv.Itoa(int(*port)) + "/")
+		}
+	}
+	ifaces, err := net.Interfaces()
+	if err != nil {
+		return
+	}
+	for _, i := range ifaces {
+		addrs, err := i.Addrs()
+		if err != nil {
+			continue
+		}
+		for _, addr := range addrs {
+			var ip net.IP
+			switch v := addr.(type) {
+			case *net.IPNet:
+				ip = v.IP
+			case *net.IPAddr:
+				ip = v.IP
+			}
+			if strings.Contains(ip.String(), ":") {
+				log.Println("Starting Streaming on http://[" + ip.String() + "]:" + strconv.Itoa(int(*port)) + "/")
+			} else {
+				log.Println("Starting Streaming on http://" + ip.String() + ":" + strconv.Itoa(int(*port)) + "/")
+			}
+		}
+	}
+}
+
+func forward() (string, error) {
+	d, err := goupnp.Discover()
+	if err != nil {
+		return "", err
+	}
+	if err := d.Forward(uint16(*port), "dumb-mp3-streamer"); err != nil {
+		return "", err
+	}
+	if ip, err := d.ExternalIP(); err != nil {
+		return "", err
+	} else {
+		return ip, nil
+	}
+}
+
+func clearUpnp() error {
+	d, err := goupnp.Discover()
+	if err != nil {
+		return err
+	}
+	if err := d.Clear(uint16(*port)); err != nil {
+		return err
+	}
+	return nil
 }
