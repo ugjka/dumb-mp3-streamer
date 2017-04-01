@@ -87,7 +87,7 @@ func main() {
 
 func read() {
 	// Send nil to clients to indicate the end
-	finish := func() {
+	defer func() {
 		d.Lock()
 		for _, k := range d.clients {
 			k <- nil
@@ -95,8 +95,7 @@ func read() {
 		d.Unlock()
 		time.Sleep(time.Second * 10)
 		c <- os.Kill
-	}
-	defer finish()
+	}()
 
 	in := mp3.NewDecoder(os.Stdin)
 	var f mp3.Frame
@@ -164,12 +163,11 @@ func stream(w http.ResponseWriter, r *http.Request) {
 	d.clients[id] = make(chan []byte, *buffer)
 	d.Unlock()
 	// Remove client
-	finish := func() {
+	defer func() {
 		d.Lock()
 		delete(d.clients, id)
 		d.Unlock()
-	}
-	defer finish()
+	}()
 	// Set some headers
 	w.Header().Set("Content-Type", "audio/mpeg")
 	w.Header().Set("Cache-Control", "no-cache")
