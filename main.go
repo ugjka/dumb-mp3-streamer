@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bufio"
 	"flag"
 	"fmt"
 	"io/ioutil"
@@ -102,8 +103,9 @@ func read() {
 
 	//Generate buffer
 	d.Lock()
+	skipped := 0
 	for i, _ := range d.buffer {
-		if err := in.Decode(&f); err != nil {
+		if err := in.Decode(&f, &skipped); err != nil {
 			log.Println(err)
 			return
 		}
@@ -122,7 +124,7 @@ func read() {
 	// Loop for sending individual mp3 frames
 	for {
 		start := time.Now()
-		if err := in.Decode(&f); err != nil {
+		if err := in.Decode(&f, &skipped); err != nil {
 			log.Println(err)
 			return
 		}
@@ -156,6 +158,8 @@ func read() {
 
 // Streamer
 func stream(w http.ResponseWriter, r *http.Request) {
+	// Buffered writes
+	bw := bufio.NewWriterSize(w, 65536)
 	// Register new client
 	d.Lock()
 	d.id++
@@ -175,7 +179,7 @@ func stream(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Server", "dumb-mp3-streamer")
 	//Send MP3 stream header
 	b := []byte{0x49, 0x44, 0x33, 0x03, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}
-	if _, err := w.Write(b); err != nil {
+	if _, err := bw.Write(b); err != nil {
 		return
 	}
 	// Send initial buffer
@@ -184,7 +188,7 @@ func stream(w http.ResponseWriter, r *http.Request) {
 	buf := d.buffer
 	d.Unlock()
 	for _, k := range buf {
-		if _, err := w.Write(k); err != nil {
+		if _, err := bw.Write(k); err != nil {
 			return
 		}
 	}
@@ -197,7 +201,7 @@ func stream(w http.ResponseWriter, r *http.Request) {
 		if buf == nil {
 			return
 		}
-		if _, err := w.Write(buf); err != nil {
+		if _, err := bw.Write(buf); err != nil {
 			return
 		}
 	}
