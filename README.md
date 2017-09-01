@@ -5,7 +5,7 @@ Reads mp3 data from Stdin, and serves them over http (livestream)
 ```
 Usage: cat *.wav | lame - - | dumb-mp3-streamer [options...]
 
-Access stream from http://localhost:8080
+Access stream from http://localhost:8080/stream
 
 Options:
 	-port 	Portnumber for server (max 65535). Default: 8080

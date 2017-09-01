@@ -22,7 +22,7 @@ import (
 var usage = `
 Usage: cat *.wav | lame - - | dumb-mp3-streamer [options...]
 
-Access stream from http://localhost:8080
+Access stream from http://localhost:8080/stream
 
 Options:
 	-port 	Portnumber for server (max 65535). Default: 8080
@@ -82,7 +82,7 @@ func main() {
 	srv := &http.Server{
 		Addr: ":" + strconv.Itoa(int(*port)),
 	}
-	http.HandleFunc("/", stream)
+	http.HandleFunc("/stream", stream)
 	log.Fatal(srv.ListenAndServe())
 }
 
@@ -234,9 +234,9 @@ func printIP() {
 				ip = v.IP
 			}
 			if strings.Contains(ip.String(), ":") {
-				log.Println("Starting Streaming on http://[" + ip.String() + "]:" + strconv.Itoa(int(*port)) + "/")
+				log.Println("Starting Streaming on http://[" + ip.String() + "]:" + strconv.Itoa(int(*port)) + "/stream")
 			} else {
-				log.Println("Starting Streaming on http://" + ip.String() + ":" + strconv.Itoa(int(*port)) + "/")
+				log.Println("Starting Streaming on http://" + ip.String() + ":" + strconv.Itoa(int(*port)) + "/stream")
 			}
 		}
 	}
