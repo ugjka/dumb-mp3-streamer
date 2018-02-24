@@ -8,7 +8,6 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
-	"strconv"
 	"strings"
 	"time"
 
@@ -18,21 +17,19 @@ import (
 var usage = `
 Usage: cat *.wav | lame - - | dumb-mp3-streamer [options...]
 
-Access stream from http://localhost:8080/stream
-
 Options:
 	-port 		Portnumber for server (max 65535). Default: 8080
-	-buffer 	Number of seconds of data to buffer at start. Default: 10
-	-chunksize	how many seconds of data to send at once. Default: 1
-	-queue		How many unsent chunks before dropping data. Default: 10
+	-buffer 	Number of seconds of mp3 audio to buffer at start. Default: 10
+	-chunksize	Number of seconds of mp3 audio to send at once. Default: 1
+	-queue		Number of unsent chunks before dropping data. Default: 10
 	-upnp		Use to forward the port on the router
 
 `
 
 func main() {
-	var buffSize *uint
 	var port *uint
 	var upnp *bool
+	var buffSize *uint
 	var chunkSize *int
 	var queueSize *int
 	var c = make(chan os.Signal, 2)
@@ -90,7 +87,7 @@ func main() {
 	go str.readLoop()
 
 	srv := &http.Server{
-		Addr: ":" + strconv.Itoa(int(*port)),
+		Addr: fmt.Sprintf(":%d", *port),
 	}
 	http.Handle("/stream", str)
 	log.Fatalln(srv.ListenAndServe())
@@ -102,7 +99,7 @@ func printIP(upnp bool, port uint) {
 		if err != nil {
 			log.Println("Upnp forwarding failed!")
 		} else {
-			log.Println("Starting Streaming on http://" + ip + ":" + strconv.Itoa(int(port)) + "/")
+			log.Printf("Starting Streaming on http://%s:%d/stream\n", ip, port)
 		}
 	}
 	ifaces, err := net.Interfaces()
@@ -123,9 +120,9 @@ func printIP(upnp bool, port uint) {
 				ip = v.IP
 			}
 			if strings.Contains(ip.String(), ":") {
-				log.Println("Starting Streaming on http://[" + ip.String() + "]:" + strconv.Itoa(int(port)) + "/stream")
+				log.Printf("Starting Streaming on http://[%s]:%d/stream\n", ip, port)
 			} else {
-				log.Println("Starting Streaming on http://" + ip.String() + ":" + strconv.Itoa(int(port)) + "/stream")
+				log.Printf("Starting Streaming on http://%s:%d/stream\n", ip, port)
 			}
 		}
 	}

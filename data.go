@@ -44,12 +44,11 @@ func (s *streamer) init() (err error) {
 	return
 }
 
-func (s *streamer) addClient() (id uint64, ch chan []byte) {
+func (s *streamer) addClient() (uint64, chan []byte) {
 	s.Lock()
 	defer s.Unlock()
 	s.id++
 	s.clients[s.id] = make(chan []byte, s.queueSize)
-	log.Println("adding:", id)
 	return s.id, s.clients[s.id]
 }
 
@@ -57,7 +56,6 @@ func (s *streamer) delClient(id uint64) {
 	s.Lock()
 	defer s.Unlock()
 	close(s.clients[id])
-	log.Println("removing:", id)
 	delete(s.clients, id)
 }
 
@@ -138,6 +136,7 @@ func (s *streamer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Server", "dumb-mp3-streamer")
 	//Send MP3 stream header
 	head := []byte{0x49, 0x44, 0x33, 0x03, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}
+	//Send data in 32K chunks
 	buffw := bufio.NewWriterSize(w, 32768)
 	if _, err := buffw.Write(head); err != nil {
 		return
@@ -155,6 +154,7 @@ func (s *streamer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	for {
 		chunk := <-recieve
 		if chunk == nil {
+			buffw.Flush()
 			return
 		}
 		if _, err := buffw.Write(chunk); err != nil {
