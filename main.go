@@ -30,13 +30,13 @@ Options:
 func main() {
 	var port *uint
 	var upnp *bool
-	var buffSize *uint
+	var buffSize *int
 	var readSize *int
 	var queueSize *int
 	var writeBuff *int
 	var c = make(chan os.Signal, 2)
 	port = flag.Uint("port", 8080, "Server Port")
-	buffSize = flag.Uint("buffer", 10, "buffer size in seconds")
+	buffSize = flag.Int("buffer", 10, "buffer size in seconds")
 	readSize = flag.Int("readsize", 1, "how many seconds read from source at once")
 	queueSize = flag.Int("queue", 10, "queue size")
 	writeBuff = flag.Int("writebuff", 32768, "write buffer size")
@@ -64,6 +64,10 @@ func main() {
 	}
 	if *writeBuff < 1 {
 		fmt.Fprint(os.Stderr, "error: writebuff size too small\n")
+		return
+	}
+	if *buffSize < *readSize {
+		fmt.Fprint(os.Stderr, "error: buffer cannot be smaller than readsize\n")
 		return
 	}
 
