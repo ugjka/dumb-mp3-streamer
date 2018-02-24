@@ -1,10 +1,8 @@
 package main
 
 import (
-	"bufio"
 	"flag"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"net"
 	"net/http"
@@ -12,11 +10,9 @@ import (
 	"os/signal"
 	"strconv"
 	"strings"
-	"sync"
 	"time"
 
 	goupnp "github.com/NebulousLabs/go-upnp"
-	"github.com/tcolgate/mp3"
 )
 
 var usage = `
@@ -25,195 +21,88 @@ Usage: cat *.wav | lame - - | dumb-mp3-streamer [options...]
 Access stream from http://localhost:8080/stream
 
 Options:
-	-port 	Portnumber for server (max 65535). Default: 8080
-	-buffer Number of mp3 frames to buffer at start. Default: 500
+	-port 		Portnumber for server (max 65535). Default: 8080
+	-buffer 	Number of seconds of data to buffer at start. Default: 10
+	-chunksize	how many seconds of data to send at once. Default: 1
+	-queue		How many unsent chunks before dropping data. Default: 10
 	-upnp		Use to forward the port on the router
 
 `
 
-type data struct {
-	sync.Mutex
-	clients map[uint64]chan []byte
-	id      uint64
-	buffer  [][]byte
-}
-
-var d data
-var buffer *uint
-var port *uint
-var upnp *bool
-var c = make(chan os.Signal, 2)
-
 func main() {
+	var buffSize *uint
+	var port *uint
+	var upnp *bool
+	var chunkSize *int
+	var queueSize *int
+	var c = make(chan os.Signal, 2)
+	chunkSize = flag.Int("chunk", 1, "chunk size in seconds")
 	port = flag.Uint("port", 8080, "Server Port")
-	buffer = flag.Uint("buffer", 500, "Number of frames to buffer")
+	buffSize = flag.Uint("buffer", 10, "buffer size in seconds")
+	queueSize = flag.Int("queue", 10, "queue size")
 	upnp = flag.Bool("upnp", false, "Enable upnp port forwarding")
 	flag.Usage = func() {
 		fmt.Fprint(os.Stderr, fmt.Sprintf(usage))
 	}
 	flag.Parse()
 	if *port > 65535 {
-		fmt.Fprint(os.Stderr, "ERROR: Invalid port number\n")
+		fmt.Fprint(os.Stderr, "error: invalid port number\n")
 		return
 	}
-	if *buffer == 0 {
-		fmt.Fprint(os.Stderr, "ERROR: Buffer cannot be 0\n")
+	if *buffSize < 1 {
+		fmt.Fprint(os.Stderr, "error: buffer too small\n")
 		return
 	}
+	if *chunkSize < 1 {
+		fmt.Fprint(os.Stderr, "error: chunksize too small\n")
+		return
+	}
+	if *queueSize < 1 {
+		fmt.Fprint(os.Stderr, "error: queue size too small\n")
+		return
+	}
+
+	str := new(streamer)
+	str.input = os.Stdin
+	str.chunkSize = time.Duration(*chunkSize) * time.Second
+	str.buffSize = time.Duration(*buffSize) * time.Second
+	str.queueSize = *queueSize
 	//Catch Ctrl+C and Kill
 	signal.Notify(c, os.Interrupt)
 	signal.Notify(c, os.Kill)
 	go func() {
 		<-c
 		log.Println("Shutting Down!")
+		close(str.stopper)
 		if *upnp {
-			_ = clearUpnp()
+			_ = clearUpnp(*port)
 		}
+		str.Wait()
 		os.Exit(0)
 	}()
-
-	d.clients = make(map[uint64]chan []byte)
-	d.buffer = make([][]byte, *buffer)
 	//Print all possible access points
-	printIP()
+	printIP(*upnp, *port)
 	//Main Reader
-	go read()
+	err := str.init()
+	if err != nil {
+		log.Fatalln(err)
+	}
+	go str.readLoop()
 
 	srv := &http.Server{
 		Addr: ":" + strconv.Itoa(int(*port)),
 	}
-	http.HandleFunc("/stream", stream)
-	log.Fatal(srv.ListenAndServe())
+	http.Handle("/stream", str)
+	log.Fatalln(srv.ListenAndServe())
 }
 
-func read() {
-	// Send nil to clients to indicate the end
-	defer func() {
-		d.Lock()
-		for _, k := range d.clients {
-			k <- nil
-		}
-		d.Unlock()
-		time.Sleep(time.Second * 10)
-		c <- os.Kill
-	}()
-
-	in := mp3.NewDecoder(os.Stdin)
-	var f mp3.Frame
-
-	//Generate buffer
-	d.Lock()
-	skipped := 0
-	for i, _ := range d.buffer {
-		if err := in.Decode(&f, &skipped); err != nil {
-			log.Println(err)
-			return
-		}
-		buf, err := ioutil.ReadAll(f.Reader())
-		if err != nil {
-			log.Println(err)
-			return
-		}
-		d.buffer[i] = buf
-	}
-	d.Unlock()
-	log.Println("Buffer created!")
-	// Timings
-	var wait time.Duration
-	var delta time.Duration
-	// Loop for sending individual mp3 frames
-	for {
-		start := time.Now()
-		if err := in.Decode(&f, &skipped); err != nil {
-			log.Println(err)
-			return
-		}
-		buf, err := ioutil.ReadAll(f.Reader())
-		if err != nil {
-			log.Println(err)
-			return
-		}
-		d.Lock()
-		//Do not send data when channel is full
-		for _, k := range d.clients {
-			if len(k) < int(*buffer) {
-				k <- buf
-			}
-		}
-		// Update the buffer
-		d.buffer = d.buffer[1:]
-		d.buffer = append(d.buffer, buf)
-		d.Unlock()
-
-		//Frame Delayer
-		wait += delta
-		delta = f.Duration() - time.Now().Sub(start)
-		if wait > time.Second {
-			time.Sleep(wait)
-			wait = 0
-		}
-
-	}
-}
-
-// Streamer
-func stream(w http.ResponseWriter, r *http.Request) {
-	// Buffered writes
-	bw := bufio.NewWriterSize(w, 65536)
-	// Register new client
-	d.Lock()
-	d.id++
-	id := d.id
-	d.clients[id] = make(chan []byte, *buffer)
-	d.Unlock()
-	// Remove client
-	defer func() {
-		d.Lock()
-		delete(d.clients, id)
-		d.Unlock()
-	}()
-	// Set some headers
-	w.Header().Set("Content-Type", "audio/mpeg")
-	w.Header().Set("Cache-Control", "no-cache")
-	w.Header().Set("Pragma", "no-cache")
-	w.Header().Set("Server", "dumb-mp3-streamer")
-	//Send MP3 stream header
-	b := []byte{0x49, 0x44, 0x33, 0x03, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}
-	if _, err := bw.Write(b); err != nil {
-		return
-	}
-	// Send initial buffer
-	d.Lock()
-	// copy the buffer to reduce the lock time
-	buf := d.buffer
-	d.Unlock()
-	for _, k := range buf {
-		if _, err := bw.Write(k); err != nil {
-			return
-		}
-	}
-	// Release the copied buffer
-	buf = nil
-	//Listen for new frames and send them
-	for {
-		buf := <-d.clients[id]
-		//End if data is nil
-		if buf == nil {
-			return
-		}
-		if _, err := bw.Write(buf); err != nil {
-			return
-		}
-	}
-}
-
-func printIP() {
-	if *upnp {
-		ip, err := forward()
+func printIP(upnp bool, port uint) {
+	if upnp {
+		ip, err := forward(port)
 		if err != nil {
 			log.Println("Upnp forwarding failed!")
 		} else {
-			log.Println("Starting Streaming on http://" + ip + ":" + strconv.Itoa(int(*port)) + "/")
+			log.Println("Starting Streaming on http://" + ip + ":" + strconv.Itoa(int(port)) + "/")
 		}
 	}
 	ifaces, err := net.Interfaces()
@@ -234,36 +123,29 @@ func printIP() {
 				ip = v.IP
 			}
 			if strings.Contains(ip.String(), ":") {
-				log.Println("Starting Streaming on http://[" + ip.String() + "]:" + strconv.Itoa(int(*port)) + "/stream")
+				log.Println("Starting Streaming on http://[" + ip.String() + "]:" + strconv.Itoa(int(port)) + "/stream")
 			} else {
-				log.Println("Starting Streaming on http://" + ip.String() + ":" + strconv.Itoa(int(*port)) + "/stream")
+				log.Println("Starting Streaming on http://" + ip.String() + ":" + strconv.Itoa(int(port)) + "/stream")
 			}
 		}
 	}
 }
 
-func forward() (string, error) {
+func forward(port uint) (string, error) {
 	d, err := goupnp.Discover()
 	if err != nil {
 		return "", err
 	}
-	if err := d.Forward(uint16(*port), "dumb-mp3-streamer"); err != nil {
+	if err := d.Forward(uint16(port), "dumb-mp3-streamer"); err != nil {
 		return "", err
 	}
-	if ip, err := d.ExternalIP(); err != nil {
-		return "", err
-	} else {
-		return ip, nil
-	}
+	return d.ExternalIP()
 }
 
-func clearUpnp() error {
+func clearUpnp(port uint) error {
 	d, err := goupnp.Discover()
 	if err != nil {
 		return err
 	}
-	if err := d.Clear(uint16(*port)); err != nil {
-		return err
-	}
-	return nil
+	return d.Clear(uint16(port))
 }
