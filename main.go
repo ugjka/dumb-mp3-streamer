@@ -79,7 +79,6 @@ func main() {
 	go func() {
 		<-c
 		log.Println("Shutting Down!")
-		close(str.stopper)
 		if *upnp {
 			_ = clearUpnp(*port)
 		}

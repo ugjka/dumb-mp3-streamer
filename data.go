@@ -25,7 +25,6 @@ type streamer struct {
 	dec       *mp3.Decoder
 	frame     *mp3.Frame
 	skipped   *int
-	stopper   chan bool
 }
 
 func (s *streamer) init() (err error) {
@@ -34,7 +33,6 @@ func (s *streamer) init() (err error) {
 	s.frame = new(mp3.Frame)
 	s.skipped = new(int)
 	s.clients = make(map[uint64]chan []byte)
-	s.stopper = make(chan bool)
 	s.dec = mp3.NewDecoder(s.input)
 	s.buffer, _, err = s.readChunk(s.buffSize)
 	if err != nil {
@@ -95,11 +93,6 @@ func (s *streamer) readLoop() {
 	var delta time.Duration
 	for {
 		start := time.Now()
-		select {
-		case <-s.stopper:
-			return
-		default:
-		}
 		buf, dur, err := s.readChunk(s.readSize)
 		if err != nil {
 			log.Println(err)
