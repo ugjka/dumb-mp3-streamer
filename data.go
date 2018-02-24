@@ -100,7 +100,11 @@ func (s *streamer) readLoop() {
 		}
 		s.send(buf)
 		s.Lock()
-		s.buffer = append(s.buffer[len(buf):], buf...)
+		if len(s.buffer) < len(buf) {
+			s.buffer = buf
+		} else {
+			s.buffer = append(s.buffer[len(buf):], buf...)
+		}
 		s.Unlock()
 
 		//Frame Delayer
