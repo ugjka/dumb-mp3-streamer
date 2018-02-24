@@ -135,8 +135,8 @@ func (s *streamer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	//Copy buffer
-	buf := make([]byte, len(s.buffer))
 	s.RLock()
+	buf := make([]byte, len(s.buffer))
 	copy(buf, s.buffer)
 	s.RUnlock()
 	if _, err := buffw.Write(buf); err != nil {
