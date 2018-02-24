@@ -20,8 +20,9 @@ Usage: cat *.wav | lame - - | dumb-mp3-streamer [options...]
 Options:
 	-port 		Portnumber for server (max 65535). Default: 8080
 	-buffer 	Number of seconds of mp3 audio to buffer at start. Default: 10
-	-chunksize	Number of seconds of mp3 audio to send at once. Default: 1
+	-readsize	Number of seconds of mp3 audio to read at once. Default: 1
 	-queue		Number of unsent chunks before dropping data. Default: 10
+	-writebuff	How many bytes send at once. Default: 32768
 	-upnp		Use to forward the port on the router
 
 `
@@ -30,14 +31,17 @@ func main() {
 	var port *uint
 	var upnp *bool
 	var buffSize *uint
-	var chunkSize *int
+	var readSize *int
 	var queueSize *int
+	var writeBuff *int
 	var c = make(chan os.Signal, 2)
-	chunkSize = flag.Int("chunk", 1, "chunk size in seconds")
 	port = flag.Uint("port", 8080, "Server Port")
 	buffSize = flag.Uint("buffer", 10, "buffer size in seconds")
+	readSize = flag.Int("readsize", 1, "how many seconds read from source at once")
 	queueSize = flag.Int("queue", 10, "queue size")
+	writeBuff = flag.Int("writebuff", 32768, "write buffer size")
 	upnp = flag.Bool("upnp", false, "Enable upnp port forwarding")
+
 	flag.Usage = func() {
 		fmt.Fprint(os.Stderr, fmt.Sprintf(usage))
 	}
@@ -50,7 +54,7 @@ func main() {
 		fmt.Fprint(os.Stderr, "error: buffer too small\n")
 		return
 	}
-	if *chunkSize < 1 {
+	if *readSize < 1 {
 		fmt.Fprint(os.Stderr, "error: chunksize too small\n")
 		return
 	}
@@ -58,12 +62,17 @@ func main() {
 		fmt.Fprint(os.Stderr, "error: queue size too small\n")
 		return
 	}
+	if *writeBuff < 1 {
+		fmt.Fprint(os.Stderr, "error: writebuff size too small\n")
+		return
+	}
 
 	str := new(streamer)
 	str.input = os.Stdin
-	str.chunkSize = time.Duration(*chunkSize) * time.Second
+	str.readSize = time.Duration(*readSize) * time.Second
 	str.buffSize = time.Duration(*buffSize) * time.Second
 	str.queueSize = *queueSize
+	str.writeBuff = *writeBuff
 	//Catch Ctrl+C and Kill
 	signal.Notify(c, os.Interrupt)
 	signal.Notify(c, os.Kill)

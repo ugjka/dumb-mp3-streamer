@@ -19,8 +19,9 @@ type streamer struct {
 	id        uint64
 	buffer    []byte
 	buffSize  time.Duration
-	chunkSize time.Duration
+	readSize  time.Duration
 	queueSize int
+	writeBuff int
 	input     io.Reader
 	dec       *mp3.Decoder
 	frame     *mp3.Frame
@@ -100,7 +101,7 @@ func (s *streamer) readLoop() {
 			return
 		default:
 		}
-		buf, dur, err := s.readChunk(s.chunkSize)
+		buf, dur, err := s.readChunk(s.readSize)
 		if err != nil {
 			log.Println(err)
 			return
@@ -113,7 +114,7 @@ func (s *streamer) readLoop() {
 		//Frame Delayer
 		wait += delta
 		delta = dur - time.Now().Sub(start)
-		if wait > s.chunkSize {
+		if wait > s.readSize {
 			time.Sleep(wait)
 			wait = 0
 		}
@@ -137,7 +138,7 @@ func (s *streamer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	//Send MP3 stream header
 	head := []byte{0x49, 0x44, 0x33, 0x03, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}
 	//Send data in 32K chunks
-	buffw := bufio.NewWriterSize(w, 32768)
+	buffw := bufio.NewWriterSize(w, s.writeBuff)
 	if _, err := buffw.Write(head); err != nil {
 		return
 	}
