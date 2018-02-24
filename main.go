@@ -83,7 +83,6 @@ func main() {
 		if *upnp {
 			_ = clearUpnp(*port)
 		}
-		str.Wait()
 		os.Exit(0)
 	}()
 	//Print all possible access points

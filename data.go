@@ -14,7 +14,6 @@ import (
 
 type streamer struct {
 	sync.RWMutex
-	sync.WaitGroup
 	clients   map[uint64]chan []byte
 	id        uint64
 	buffer    []byte
@@ -123,11 +122,7 @@ func (s *streamer) readLoop() {
 }
 
 func (s *streamer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	s.Lock()
-	s.Add(1)
-	s.Unlock()
 	id, recieve := s.addClient()
-	defer s.Done()
 	defer s.delClient(id)
 
 	// Set some headers
@@ -137,7 +132,7 @@ func (s *streamer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Server", "dumb-mp3-streamer")
 	//Send MP3 stream header
 	head := []byte{0x49, 0x44, 0x33, 0x03, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}
-	//Send data in 32K chunks
+	//Send data in chunks
 	buffw := bufio.NewWriterSize(w, s.writeBuff)
 	if _, err := buffw.Write(head); err != nil {
 		return
