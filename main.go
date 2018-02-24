@@ -66,10 +66,6 @@ func main() {
 		fmt.Fprint(os.Stderr, "error: writebuff size too small\n")
 		return
 	}
-	if *buffSize < *readSize {
-		fmt.Fprint(os.Stderr, "error: buffer cannot be smaller than readsize\n")
-		return
-	}
 
 	str := new(streamer)
 	str.input = os.Stdin
