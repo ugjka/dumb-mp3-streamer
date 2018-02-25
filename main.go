@@ -75,7 +75,6 @@ func main() {
 	str.writeBuff = *writeBuff
 	//Catch Ctrl+C and Kill
 	signal.Notify(c, os.Interrupt)
-	signal.Notify(c, os.Kill)
 	go func() {
 		<-c
 		log.Println("Shutting Down!")
