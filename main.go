@@ -62,7 +62,7 @@ func main() {
 		fmt.Fprint(os.Stderr, "error: queue size too small\n")
 		return
 	}
-	if *writeBuff < 1 {
+	if *writeBuff < 512 {
 		fmt.Fprint(os.Stderr, "error: writebuff size too small\n")
 		return
 	}
