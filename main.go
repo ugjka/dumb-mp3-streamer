@@ -80,7 +80,10 @@ func main() {
 		<-c
 		log.Println("Shutting Down!")
 		if *upnp {
-			_ = clearUpnp(*port)
+			err := clearUpnp(*port)
+			if err != nil {
+				log.Println(err)
+			}
 		}
 		os.Exit(0)
 	}()
@@ -109,28 +112,20 @@ func printIP(upnp bool, port uint) {
 			log.Printf("Starting Streaming on http://%s:%d/stream\n", ip, port)
 		}
 	}
-	ifaces, err := net.Interfaces()
+	addrs, err := net.InterfaceAddrs()
 	if err != nil {
+		log.Println(err)
 		return
 	}
-	for _, i := range ifaces {
-		addrs, err := i.Addrs()
-		if err != nil {
+	for _, addr := range addrs {
+		net, ok := addr.(*net.IPNet)
+		if !ok {
 			continue
 		}
-		for _, addr := range addrs {
-			var ip net.IP
-			switch v := addr.(type) {
-			case *net.IPNet:
-				ip = v.IP
-			case *net.IPAddr:
-				ip = v.IP
-			}
-			if strings.Contains(ip.String(), ":") {
-				log.Printf("Starting Streaming on http://[%s]:%d/stream\n", ip, port)
-			} else {
-				log.Printf("Starting Streaming on http://%s:%d/stream\n", ip, port)
-			}
+		if strings.Contains(net.IP.String(), ":") {
+			log.Printf("Starting Streaming on http://[%s]:%d/stream\n", net.IP, port)
+		} else {
+			log.Printf("Starting Streaming on http://%s:%d/stream\n", net.IP, port)
 		}
 	}
 }
