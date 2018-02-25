@@ -110,7 +110,7 @@ func (s *streamer) readLoop() {
 		//Frame Delayer
 		wait += delta
 		delta = dur - time.Now().Sub(start)
-		if wait > s.readSize {
+		if wait > s.readSize*2 {
 			time.Sleep(wait)
 			wait = 0
 		}
