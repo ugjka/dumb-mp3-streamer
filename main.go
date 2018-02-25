@@ -22,7 +22,7 @@ Options:
 	-buffer 	Number of seconds of mp3 audio to buffer at start. Default: 10
 	-readsize	Number of seconds of mp3 audio to read at once. Default: 1
 	-queue		Number of unsent chunks before dropping data. Default: 10
-	-writebuff	How many bytes send at once. Default: 32768
+	-writebuff	Write buffer. Default: 32768
 	-upnp		Use to forward the port on the router
 
 `
