@@ -17,14 +17,15 @@ type streamer struct {
 	clients   map[uint64]chan []byte
 	id        uint64
 	buffer    []byte
-	buffSize  time.Duration
-	readSize  time.Duration
-	queueSize int
-	writeBuff int
-	input     io.Reader
+	BuffSize  time.Duration
+	ReadSize  time.Duration
+	QueueSize int
+	WriteBuff int
+	Input     io.Reader
 	dec       *mp3.Decoder
 	frame     *mp3.Frame
 	skipped   *int
+	Stop      chan bool
 }
 
 func (s *streamer) init() (err error) {
@@ -33,8 +34,9 @@ func (s *streamer) init() (err error) {
 	s.frame = new(mp3.Frame)
 	s.skipped = new(int)
 	s.clients = make(map[uint64]chan []byte)
-	s.dec = mp3.NewDecoder(s.input)
-	s.buffer, _, err = s.readChunk(s.buffSize)
+	s.dec = mp3.NewDecoder(s.Input)
+	s.buffer, _, err = s.readChunk(s.BuffSize)
+	s.Stop = make(chan bool)
 	if err != nil {
 		return
 	}
@@ -46,7 +48,7 @@ func (s *streamer) addClient() (uint64, chan []byte) {
 	s.Lock()
 	defer s.Unlock()
 	s.id++
-	s.clients[s.id] = make(chan []byte, s.queueSize)
+	s.clients[s.id] = make(chan []byte, s.QueueSize)
 	return s.id, s.clients[s.id]
 }
 
@@ -88,12 +90,12 @@ func (s *streamer) readChunk(expd time.Duration) (buf []byte, reald time.Duratio
 }
 
 func (s *streamer) readLoop() {
-	defer s.send(nil)
+	defer close(s.Stop)
 	var wait time.Duration
-	var delta time.Duration
+	var start time.Time
 	for {
-		start := time.Now()
-		buf, dur, err := s.readChunk(s.readSize)
+		start = time.Now()
+		buf, dur, err := s.readChunk(s.ReadSize)
 		if err != nil {
 			log.Println(err)
 			return
@@ -106,15 +108,11 @@ func (s *streamer) readLoop() {
 			s.buffer = append(s.buffer[len(buf):], buf...)
 		}
 		s.Unlock()
-
-		//Frame Delayer
-		wait += delta
-		delta = dur - time.Now().Sub(start)
-		if wait > s.readSize*2 {
+		wait += dur - time.Now().Sub(start)
+		if wait > dur {
 			time.Sleep(wait)
 			wait = 0
 		}
-
 	}
 }
 
@@ -130,7 +128,7 @@ func (s *streamer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	//Send MP3 stream header
 	head := []byte{0x49, 0x44, 0x33, 0x03, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}
 	//Send data in chunks
-	buffw := bufio.NewWriterSize(w, s.writeBuff)
+	buffw := bufio.NewWriterSize(w, s.WriteBuff)
 	if _, err := buffw.Write(head); err != nil {
 		return
 	}
@@ -146,10 +144,6 @@ func (s *streamer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	for {
 		chunk := <-recieve
-		if chunk == nil {
-			buffw.Flush()
-			return
-		}
 		if _, err := buffw.Write(chunk); err != nil {
 			return
 		}

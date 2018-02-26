@@ -68,15 +68,25 @@ func main() {
 	}
 
 	str := new(streamer)
-	str.input = os.Stdin
-	str.readSize = time.Duration(*readSize) * time.Second
-	str.buffSize = time.Duration(*buffSize) * time.Second
-	str.queueSize = *queueSize
-	str.writeBuff = *writeBuff
-	//Catch Ctrl+C and Kill
+	str.Input = os.Stdin
+	str.ReadSize = time.Duration(*readSize) * time.Second
+	str.BuffSize = time.Duration(*buffSize) * time.Second
+	str.QueueSize = *queueSize
+	str.WriteBuff = *writeBuff
+	err := str.init()
+	if err != nil {
+		log.Fatalln(err)
+	}
+	go str.readLoop()
+
+	printIP(*upnp, *port)
+
 	signal.Notify(c, os.Interrupt)
 	go func() {
-		<-c
+		select {
+		case <-c:
+		case <-str.Stop:
+		}
 		log.Println("Shutting Down!")
 		if *upnp {
 			err := clearUpnp(*port)
@@ -86,14 +96,6 @@ func main() {
 		}
 		os.Exit(0)
 	}()
-	//Print all possible access points
-	printIP(*upnp, *port)
-	//Main Reader
-	err := str.init()
-	if err != nil {
-		log.Fatalln(err)
-	}
-	go str.readLoop()
 
 	srv := &http.Server{
 		Addr: fmt.Sprintf(":%d", *port),
