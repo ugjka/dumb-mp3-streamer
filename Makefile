@@ -10,7 +10,7 @@ install:
 	install -Dm755 $(appname) $(prefix)/bin/$(appname)
 
 uninstall:
-	rm "$(prefix)/bin/$(appname)"
+	rm $(prefix)/bin/$(appname)
 
 clean:
 	rm -rf $(GOPATH)
