@@ -24,6 +24,8 @@ Check the [Wiki](https://github.com/ugjka/dumb-mp3-streamer/wiki) for examples
 
 Precompiled binaries available under the releases page
 
+Archlinux: [AUR](https://aur.archlinux.org/packages/dumb-mp3-streamer-git/)
+
 ### Manual installation using make
 
 You need the Go compiler installed and make. The Go compliler can be under different names on different distributions. On debian flavors it is named `golang`, on archlinux you need `go` and `go-tools`. Check your distribution's support channels if you can't find it.
