@@ -2,6 +2,8 @@
 
 [![Donate](https://dl.ugjka.net/Donate-PayPal-green.svg)](https://www.paypal.me/ugjka)
 
+[![FOSSA Status](https://app.fossa.io/api/projects/git%2Bgithub.com%2Fugjka%2Fdumb-mp3-streamer.svg?type=large)](https://app.fossa.io/projects/git%2Bgithub.com%2Fugjka%2Fdumb-mp3-streamer?ref=badge_large)
+
 Reads mp3 data from Stdin, and serves them over http (livestream)
 
 ```text
