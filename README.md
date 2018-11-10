@@ -1,6 +1,7 @@
 # dumb-mp3-streamer
 
 [![Donate](https://dl.ugjka.net/Donate-PayPal-green.svg)](https://www.paypal.me/ugjka)
+[![FOSSA Status](https://app.fossa.io/api/projects/git%2Bgithub.com%2Fugjka%2Fdumb-mp3-streamer.svg?type=shield)](https://app.fossa.io/projects/git%2Bgithub.com%2Fugjka%2Fdumb-mp3-streamer?ref=badge_shield)
 
 [![FOSSA Status](https://app.fossa.io/api/projects/git%2Bgithub.com%2Fugjka%2Fdumb-mp3-streamer.svg?type=large)](https://app.fossa.io/projects/git%2Bgithub.com%2Fugjka%2Fdumb-mp3-streamer?ref=badge_large)
 
@@ -37,3 +38,7 @@ You need the Go compiler installed and make. The Go compliler can be under diffe
 Once you have those, then you just run `make` and `sudo make install`
 
 You can also specify an installation prefix e.g. `sudo make prefix=/usr install` if you don't want to install in `/usr/local`
+
+
+## License
+[![FOSSA Status](https://app.fossa.io/api/projects/git%2Bgithub.com%2Fugjka%2Fdumb-mp3-streamer.svg?type=large)](https://app.fossa.io/projects/git%2Bgithub.com%2Fugjka%2Fdumb-mp3-streamer?ref=badge_large)
