@@ -1,0 +1,38 @@
+# github.com/NebulousLabs/go-upnp v0.0.0-20181011194642-3a71999ed0d3
+github.com/NebulousLabs/go-upnp
+# github.com/tcolgate/mp3 v0.0.0-20170426193717-e79c5a46d300
+github.com/tcolgate/mp3
+github.com/tcolgate/mp3/internal/data
+# gitlab.com/NebulousLabs/fastrand v0.0.0-20181126182046-603482d69e40
+gitlab.com/NebulousLabs/fastrand
+# gitlab.com/NebulousLabs/go-upnp v0.0.0-20181011194642-3a71999ed0d3
+gitlab.com/NebulousLabs/go-upnp/goupnp
+gitlab.com/NebulousLabs/go-upnp/goupnp/dcps/internetgateway1
+gitlab.com/NebulousLabs/go-upnp/goupnp/httpu
+gitlab.com/NebulousLabs/go-upnp/goupnp/scpd
+gitlab.com/NebulousLabs/go-upnp/goupnp/soap
+gitlab.com/NebulousLabs/go-upnp/goupnp/ssdp
+# golang.org/x/crypto v0.0.0-20181127143415-eb0de9b17e85
+golang.org/x/crypto/blake2b
+# golang.org/x/net v0.0.0-20181129055619-fae4c4e3ad76
+golang.org/x/net/html/charset
+golang.org/x/net/html
+golang.org/x/net/html/atom
+# golang.org/x/sys v0.0.0-20181128092732-4ed8d59d0b35
+golang.org/x/sys/cpu
+# golang.org/x/text v0.3.0
+golang.org/x/text/encoding
+golang.org/x/text/encoding/charmap
+golang.org/x/text/encoding/htmlindex
+golang.org/x/text/transform
+golang.org/x/text/encoding/internal/identifier
+golang.org/x/text/encoding/internal
+golang.org/x/text/encoding/japanese
+golang.org/x/text/encoding/korean
+golang.org/x/text/encoding/simplifiedchinese
+golang.org/x/text/encoding/traditionalchinese
+golang.org/x/text/encoding/unicode
+golang.org/x/text/language
+golang.org/x/text/internal/utf8internal
+golang.org/x/text/runes
+golang.org/x/text/internal/tag
