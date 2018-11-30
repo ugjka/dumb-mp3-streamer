@@ -12,5 +12,6 @@ uninstall:
 	rm $(prefix)/bin/$(appname)
 
 clean:
+	chmod -R 755 $(GOPATH)
 	rm -rf $(GOPATH)
 	rm $(appname)
