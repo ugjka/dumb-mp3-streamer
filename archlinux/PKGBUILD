@@ -24,5 +24,4 @@ build(){
 package(){
     cd $_pkgname
     make prefix="${pkgdir}"/usr install
-    make clean
 }
